@@ -1,0 +1,159 @@
+REPORT z_alv_upu.
+INCLUDE z_alv_upu_f01.
+
+TABLES: sflight, tvarvc.
+
+TYPE-POOLS slis.
+
+*Definicion de tablas y estructuras
+
+INITIALIZATION.
+
+  TYPES:  BEGIN OF ty_sflight,
+          carrid     TYPE sflight-carrid,
+          connid     TYPE sflight-connid,
+          fldate     TYPE sflight-fldate,
+          price      TYPE sflight-price,
+          planetype  TYPE sflight-planetype,
+          traffic(4) TYPE c,
+          status     TYPE char4,
+          END OF ty_sflight.
+
+  DATA: icon1       TYPE icon.
+
+  DATA: v_hostname  TYPE tvarvc-name.
+
+  DATA: it_sflight  TYPE STANDARD TABLE OF ty_sflight,
+        ls_sflight  TYPE ty_sflight.
+
+  DATA: it_fielcat  TYPE slis_t_fieldcat_alv,
+        it_layout   TYPE slis_layout_alv,
+        ls_fielcat  TYPE slis_fieldcat_alv.
+
+  DATA: r_ucomm     LIKE sy-ucomm,
+        rs_selfield TYPE slis_selfield,
+        rt_extab    TYPE slis_t_extab.
+
+  DATA: g_repid TYPE sy-repid.
+
+
+START-OF-SELECTION.
+
+  SELECT  carrid
+          connid
+          fldate
+          price
+          planetype
+    FROM sflight
+
+    INTO CORRESPONDING FIELDS OF TABLE it_sflight
+    WHERE price BETWEEN 0 AND 400.
+  LOOP AT it_sflight INTO  ls_sflight.
+
+    IF ls_sflight-carrid EQ 'SQ'.
+      " ls_sflight-status = icon_red_light.
+      ls_sflight-traffic = '@0A@'.
+
+    ELSEIF ls_sflight-carrid EQ 'LH'.
+      " ls_sflight-status = icon_green_light.
+      ls_sflight-traffic = '@09@'.
+
+    ELSE.
+      ls_sflight-traffic = '@08@'.
+
+     ENDIF.
+      "APPEND ls_sflight to it_sflight.
+      MODIFY it_sflight FROM ls_sflight TRANSPORTING traffic.
+    ENDLOOP.
+    g_repid = sy-repid.
+
+* Catalogo de alv a llenar
+    ls_fielcat-fieldname = 'CARRID'.
+    ls_fielcat-seltext_s = 'Comp. '.
+    ls_fielcat-seltext_m = 'Compañía Aérea'.
+    ls_fielcat-key       = 'X'.
+    APPEND ls_fielcat TO it_fielcat.
+    CLEAR ls_fielcat.
+
+    ls_fielcat-fieldname = 'CONNID'.
+    ls_fielcat-seltext_m = 'Vuelo'.
+    ls_fielcat-seltext_s = 'Vuelo'.
+    APPEND ls_fielcat TO it_fielcat.
+    CLEAR ls_fielcat.
+
+    ls_fielcat-fieldname = 'FLDATE'.
+    ls_fielcat-seltext_s = 'Fecha'.
+    ls_fielcat-seltext_m = 'Fecha'.
+    APPEND ls_fielcat TO it_fielcat.
+    CLEAR ls_fielcat.
+
+    ls_fielcat-fieldname = 'PRICE'.
+    ls_fielcat-seltext_s = 'Tarifa'.
+    ls_fielcat-seltext_m = 'Tarifa'.
+    APPEND ls_fielcat TO it_fielcat.
+    CLEAR ls_fielcat.
+
+    ls_fielcat-fieldname = 'PLANETYPE'.
+    ls_fielcat-seltext_s = 'Tip. Avi'.
+    ls_fielcat-seltext_m = 'Tipo de avion'.
+    APPEND ls_fielcat TO it_fielcat.
+    CLEAR ls_fielcat.
+
+    ls_fielcat-fieldname = 'TRAFFIC'.
+    ls_fielcat-seltext_s = 'Status.'.
+    ls_fielcat-seltext_m = 'Status'.
+    APPEND ls_fielcat TO it_fielcat.
+    CLEAR ls_fielcat.
+
+    it_layout-zebra = 'X'.
+    it_layout-colwidth_optimize = 'X'.
+    it_layout-window_titlebar   = text-001.
+    "it_layout-lights_fieldname  = 'ICON'.
+
+    PERFORM mi_user_command USING r_ucomm
+                                  rs_selfield.
+
+    PERFORM mi_standard USING rt_extab.
+
+
+
+    CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
+      EXPORTING
+        i_callback_program       = g_repid
+        i_callback_pf_status_set = 'MI_STANDARD'
+        i_callback_user_command  = 'MI_USER_COMMAND'
+        is_layout                = it_layout
+        it_fieldcat              = it_fielcat[]
+      TABLES
+        t_outtab                 = it_sflight[]
+      EXCEPTIONS
+        program_error            = 1
+        OTHERS                   = 2.
+    IF sy-subrc <> 0.
+      MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+                 WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+    ENDIF.
+
+INCLUIDE DE SUBRUTINAS.
+
+FORM mi_user_command USING  r_ucomm     TYPE sy-ucomm
+                            rs_selfield TYPE slis_selfield.
+
+  CASE r_ucomm.
+    WHEN '&BT1'. "Se ha hecho click en el boton
+      MESSAGE 'Has pulsado el boton creado' TYPE 'I'.
+    WHEN 'EXIT'.
+      LEAVE PROGRAM.
+  ENDCASE.
+ENDFORM.                    "mi_user_command
+
+*&---------------------------------------------------------------------*
+*&      Form  mi_standard
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->RT_EXTAB   text
+*----------------------------------------------------------------------*
+FORM mi_standard USING rt_extab TYPE slis_t_extab.
+  SET PF-STATUS 'STANDARD'. "Nombre del status GUI
+ENDFORM.                    "mi_standard
