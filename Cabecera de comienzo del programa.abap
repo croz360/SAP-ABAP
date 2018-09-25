@@ -1,6 +1,6 @@
 *************************************************************
 *PROGRAMA           : "NOMBRE_DEL_PROGRAMA"                 *
-*AUTOR              : ULISES PADILLA URIBE                  *
+*AUTOR              :                                       *
 *                                                           *
 *FECHA              : "FECAH DE REALIZACIÓN DEL PROGRAMA"   *
 *************************************************************
