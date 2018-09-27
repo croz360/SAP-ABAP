@@ -6,7 +6,7 @@
 *&
 *&---------------------------------------------------------------------*
 
-REPORT ztestupu_xml.
+﻿REPORT ztestupu_xml.
 
 DATA: gcl_xml       TYPE REF TO cl_xml_document,
       gv_subrc      TYPE sy-subrc,
@@ -73,7 +73,7 @@ START-OF-SELECTION.
           return    = gt_return.      " XML Table structure used for retreive and output XML doc
 
     ENDIF.
-    WRITE:/ 'Jerarqu�a',11 'Type',17 'Name',37 'Value'.
+    WRITE:/ 'Jerarquía',11 'Type',17 'Name',37 'Value'.
 
     DESCRIBE TABLE gt_xml_data LINES lv_lines.
 
