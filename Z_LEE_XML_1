@@ -1,0 +1,107 @@
+*&---------------------------------------------------------------------*
+*& Report  ZTESTUPU_XML
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT ztestupu_xml.
+
+DATA: gcl_xml       TYPE REF TO cl_xml_document,
+      gv_subrc      TYPE sy-subrc,
+      gv_xml_string TYPE xstring,
+      gv_size       TYPE sytabix,
+      gt_xml_data   TYPE STANDARD TABLE OF smum_xmltb,
+      gwa_xml_data  TYPE smum_xmltb,
+      gt_return     TYPE TABLE OF bapiret2,
+      lv_ruta       TYPE localfile,
+      gv_tabix      TYPE sytabix,
+      lv_lines      TYPE i,
+      lv_lines_1    TYPE i,
+      lv_uuid       TYPE ze_uuid.
+
+CONSTANTS: c_timbmn1(19) TYPE c VALUE 'TimbreFiscalDigital',
+           c_timbmy1(19) TYPE c VALUE 'TIMBREFISCALDIGITAL',
+           c_uuid        TYPE c LENGTH 4 VALUE 'UUID'.
+
+
+PARAMETER: p_file TYPE localfile.
+"=== Funcion Para Obtener La Ruta Del Archivo
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_file.
+  CALL FUNCTION 'F4_FILENAME'
+    EXPORTING
+      program_name  = syst-cprog
+      dynpro_number = syst-dynnr
+      field_name    = 'P_FILE'
+    IMPORTING
+      file_name     = p_file.
+  IF sy-subrc EQ 0.
+
+  ENDIF.
+
+START-OF-SELECTION.
+
+  CREATE OBJECT gcl_xml.
+
+  "lv_ruta = 'C:\Users\jadominguezc\Documents\Requerimientos de SKY\SKY Complemento de pago fase 2 revtrac-2714\Ejemplos de XML para pruebas\P2'.
+  lv_ruta = 'C:\Users\jadominguezc\Desktop\P2'.
+  "=== Descarga de XML de archivo
+  CALL METHOD gcl_xml->import_from_file
+    EXPORTING
+      filename = p_file
+    RECEIVING
+      retcode  = gv_subrc.
+
+  IF gv_subrc EQ 0.
+
+    CALL METHOD gcl_xml->render_2_xstring
+*      EXPORTING
+*        pretty_print = 'X'
+      IMPORTING
+        retcode      = gv_subrc
+        stream       = gv_xml_string
+        size         = gv_size.
+
+    IF gv_subrc = 0.
+
+      CALL FUNCTION 'SMUM_XML_PARSE'
+        EXPORTING
+          xml_input = gv_xml_string
+        TABLES
+          xml_table = gt_xml_data    " XML Table structure used for retreive and output XML doc
+          return    = gt_return.      " XML Table structure used for retreive and output XML doc
+
+    ENDIF.
+    WRITE:/ 'Jerarquía',11 'Type',17 'Name',37 'Value'.
+
+    DESCRIBE TABLE gt_xml_data LINES lv_lines.
+
+    READ TABLE gt_xml_data INTO gwa_xml_data WITH KEY cname = c_timbmn1.
+    IF sy-subrc NE 0.
+      READ TABLE gt_xml_data INTO gwa_xml_data WITH KEY  cname = c_timbmy1.
+
+    ENDIF.
+
+
+      "=== se valida si hubo coincidencias
+      IF gwa_xml_data IS NOT INITIAL.
+
+        LOOP AT gt_xml_data INTO gwa_xml_data FROM sy-tabix WHERE cname = c_uuid.
+          lv_uuid = gwa_xml_data-cvalue.
+          CLEAR: gwa_xml_data.
+          EXIT.
+        ENDLOOP.
+
+      ENDIF.
+      WRITE:/ lv_uuid.
+
+*    CLEAR: sy-tabix.
+*    sy-tabix = 1.
+      LOOP AT gt_xml_data INTO gwa_xml_data.
+        WRITE:/ gwa_xml_data-hier,11 gwa_xml_data-type,17 gwa_xml_data-cname,37
+                gwa_xml_data-cvalue.
+        CLEAR gwa_xml_data.
+      ENDLOOP.
+
+    ENDIF.
