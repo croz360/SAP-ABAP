@@ -184,7 +184,7 @@ START-OF-SELECTION.
 
       IF gwa_xml_data IS NOT INITIAL.
 
-
+        d
 
         LOOP AT gt_xml_data INTO gwa_xml_data FROM sy-tabix WHERE cname = c_uuid.
 
